@@ -1,6 +1,8 @@
+import os 
 import streamlit as st 
 from dotenv import load_dotenv
-import os 
+from presentation import scraping
+from presentation import chat
 
 load_dotenv()
 
@@ -35,6 +37,7 @@ if "collection" not in st.session_state:
     st.session_state.collection = None
 
 if mode == "Scraping":
-    st.write('Página de scraping')
+    scraping.show()
 else:
-    st.write('chat')
+    chat.show()
+
