@@ -14,8 +14,11 @@ class RAGService:
         self.embeddings = HuggingFaceBgeEmbeddings(
             model_name="all-MiniLM-L6-v2"
         )
+        api_key = os.getenv("GROQ_API_KEY")
+        if not api_key:
+            raise ValueError("GROQ_API_KEY environment variable not set")
         self.llm = ChatGroq(
-            api_key=SecretStr(os.getenv("GROQ_API_KEY", "")),
+            api_key=SecretStr(api_key),
             model="llama3-8b-8192"
         )
 
@@ -83,7 +86,7 @@ class RAGService:
             return "Nenhuma coleção carregada."
 
         try:
-            result = self.qa_chain.run(question)
+            result = self.qa_chain.invoke({"query": question})
             return result
 
         except Exception as e:

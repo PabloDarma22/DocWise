@@ -2,7 +2,6 @@ import os
 from firecrawl import FirecrawlApp
 
 
-
 class ScrapingService:
     def __init__(self):
         self.api_key = os.getenv("FIRECRAWL_API_KEY")  #chave de acesso para usar o firecrawl (gratuito)
@@ -12,13 +11,21 @@ class ScrapingService:
 
     def scrap_website(self, url, collection_name):
         try:
-            map_result = self.app.map_url(url) #pega todos os sublinks 
+            map_result = self.app.map_url(url) #pega todos os sublinks
+
+            # 💡 Dica adicional: visualizar o conteúdo do map_result
+            # print("🛠️ map_result:", map_result)
+            # try:
+            #     import streamlit as st
+            #     st.write("🛠️ Resultado da varredura:", map_result)
+            # except ImportError:
+            #     pass  
+
+            data = getattr(map_result, 'data', None)  # garante que data sempre existe
 
             if hasattr(map_result, 'links'):
                 links = map_result.links
-            else:
-                data = getattr(map_result, 'data', None)
-            if data and hasattr(data, 'links'):
+            elif data and hasattr(data, 'links'):
                 links = data.links
             else:
                 links = getattr(map_result, 'links', [])
@@ -42,24 +49,34 @@ class ScrapingService:
 
             for i, page in enumerate(scraped_data, 1):
                 markdown_content = None  # inicializa como None
+                origem = "nenhuma"
 
-            if hasattr(page, 'markdown') and page.markdown:
-                markdown_content = page.markdown
+                print(f"\n📄 Página {i}: tipo {type(page)}")
 
-            else:
-                data = getattr(page, 'data', None)
-                if data and hasattr(data, 'markdown') and data.markdown:
-                    markdown_content = data.markdown
+                if hasattr(page, 'markdown') and page.markdown:
+                    markdown_content = page.markdown
+                    origem = "direto"
 
-                elif isinstance(page, dict) and page.get("markdown"):
-                    markdown_content = page["markdown"]
+                else:
+                    data = getattr(page, 'data', None)
+                    if data and hasattr(data, 'markdown') and data.markdown:
+                        markdown_content = data.markdown
+                        origem = "via data"
+                    elif isinstance(page, dict) and page.get("markdown"):
+                        markdown_content = page["markdown"]
+                        origem = "dict"
+                if markdown_content:
+                    with open(f"{collection_path}/{i}.md", "w", encoding="utf-8") as f:
+                        f.write(markdown_content)
+                    print(f"✅ Arquivo salvo: {i}.md (origem: {origem})")
+                    saved_count += 1
+                else:
+                    # Salva para inspeção se desejar
+                    with open(f"{collection_path}/vazio_{i}.txt", "w", encoding="utf-8") as f:
+                        f.write(str(page))
+                    print(f"⚠️ Nenhum markdown encontrado na página {i}. Conteúdo salvo como vazio_{i}.txt")
 
-            if markdown_content:
-                with open(f"{collection_path}/{i}.md", "w", encoding="utf-8") as f:
-                    f.write(markdown_content)
-                saved_count += 1
-
-            return {"sucess": True, "files": saved_count}
+            return {"success": True, "files": saved_count}
 
         except Exception as e:
             print(f"Erro no scraping: {str(e)}")
